@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>磁链Cool</title>
+<meta name="renderer" content="webkit">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport"
+	content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="stylesheet" href="./css/layui.css" media="all">
+<style>
+.searchInput {
+	width: 180px;
+	margin-right: 10px;
+}
+
+.layui-table, .layui-table-view {
+	margin: 1px;
+}
+</style>
+<script src="https://cdn.bootcss.com/jquery/2.2.2/jquery.min.js"></script>
+<script src="./layui.js"></script>
+<script type="text/javascript">
+	$(function() {
+		function getUrlParam(name) {
+			var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)');
+			var r = window.location.search.substr(1).match(reg);
+			if (r != null)
+				return decodeURIComponent(r[2]);
+			return null;
+		}
+		
+		function getfilesize(size) {
+	        if (!size)
+	            return "";
+	        var num = 1024.00; //byte
+	 
+	        if (size < num)
+	            return size + "B";
+	        if (size < Math.pow(num, 2))
+	            return (size / num).toFixed(2) + "K"; //kb
+	        if (size < Math.pow(num, 3))
+	            return (size / Math.pow(num, 2)).toFixed(2) + "M"; //M
+	        if (size < Math.pow(num, 4))
+	            return (size / Math.pow(num, 3)).toFixed(2) + "G"; //G
+	        return (size / Math.pow(num, 4)).toFixed(2) + "T"; //T
+	    }
+
+		layui.use('table', function() {
+
+			var table = layui.table;
+
+			table.render({
+				elem : '#fileTable',
+				url : '/file/listFiles',
+				page: false,
+				where : { //设定异步数据接口的额外参数，任意设
+					metadataId : getUrlParam('metadataId')
+				},
+				response : {
+					statusCode : 200, //规定成功的状态码，默认：0
+				},
+				parseData : function(res) { //res 即为原始返回的数据
+					return {
+						"code" : res.code, //解析接口状态
+						"msg" : res.message, //解析提示文本
+						"data" : res.data
+					};
+				},
+				loading : true,
+				text : '无数据',
+				autoSort : true,
+				cols : [ [
+						{
+							field : 'fileName',
+							title : '文件名',
+							minWidth : 200
+						},
+						{
+							field : 'fileLength',
+							title : '大小',
+							width : 110,
+							templet : function(data) {
+								return getfilesize(data.fileLength);
+							}
+						} ] ]
+			});
+		});
+	});
+</script>
+</head>
+<body>
+	<table lay-filter="fileTable" id="fileTable"></table>
+</body>
+</html>

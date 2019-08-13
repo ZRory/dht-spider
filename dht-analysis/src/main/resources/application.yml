@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    url: jdbc:mysql://**:3306/dht?characterEncoding=utf-8&autoReconnectForPools=true&useSSL=false
+    driverClassName: com.mysql.jdbc.Driver
+    username: root
+    password: **
+mybatis:
+  type-aliases-package: vip.rory.dht.dao.entity
+  mapper-locations: classpath:mapper/*.xml
+mapper:
+  mappers: vip.rory.dht.dao.util.MyMapper
+  not-empty: false
+  identity: MYSQL

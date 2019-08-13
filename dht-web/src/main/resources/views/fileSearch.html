@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>磁链Cool</title>
+<meta name="renderer" content="webkit">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport"
+	content="width=device-width, initial-scale=1, maximum-scale=1">
+<link rel="stylesheet" href="./css/layui.css" media="all">
+<style>
+.searchKeyInput {
+	width: 180px;
+	margin-right: 10px;
+}
+
+.layui-table-tool-temp {
+	padding-right: 10px;
+}
+
+#pageChange {
+	float: right;
+}
+
+.layui-table, .layui-table-view {
+	margin: 0px;
+}
+</style>
+<script src="https://cdn.bootcss.com/jquery/2.2.2/jquery.min.js"></script>
+<script src="./layui.js"></script>
+<script type="text/javascript">
+	$(function() {
+		layui.use('table', function() {
+			
+			function getfilesize(size) {
+		        if (!size)
+		            return "";
+		        var num = 1024.00; //byte
+		 
+		        if (size < num)
+		            return size + "B";
+		        if (size < Math.pow(num, 2))
+		            return (size / num).toFixed(2) + "K"; //kb
+		        if (size < Math.pow(num, 3))
+		            return (size / Math.pow(num, 2)).toFixed(2) + "M"; //M
+		        if (size < Math.pow(num, 4))
+		            return (size / Math.pow(num, 3)).toFixed(2) + "G"; //G
+		        return (size / Math.pow(num, 4)).toFixed(2) + "T"; //T
+		    }
+
+			var table = layui.table;
+
+			table.render({
+				elem : '#fileTable',
+				url : '/file/selectPage',
+				request : {
+					pageName : 'page', //页码的参数名称，默认：page
+					limitName : 'rows' //每页数据量的参数名，默认：limit
+				},
+				response : {
+					statusCode : 200, //规定成功的状态码，默认：0
+				},
+				parseData : function(res) { //res 即为原始返回的数据
+					return {
+						"code" : res.code, //解析接口状态
+						"msg" : res.message, //解析提示文本
+						"count" : res.data.total, //解析数据长度
+						"data" : res.data.list
+					//解析数据列表
+					};
+				},
+				page : true,
+				loading : true,
+				limit : 20,
+				text : {
+					none : '暂无相关数据'
+				},
+				height : 'full-20',
+				toolbar : '#searchBar',
+				defaultToolbar : [],
+				autoSort : false,
+				cols : [ [
+						{
+							field : 'id',
+							width : 96,
+							title : 'ID',
+							sort : true
+						},{
+							field : 'metadataId',
+							width : 80,
+							title : 'mId',
+							sort : true
+						},
+						{
+							field : 'fileName',
+							title : '资源名',
+							minWidth : 320
+						},
+						{
+							field : 'fileLength',
+							title : '大小',
+							width : 100,
+							templet : function(data) {
+								return getfilesize(data.fileLength);
+							}
+						},
+						  {
+							field : 'createTime',
+							width : 168,
+							title : '收录时间',
+							sort : true,
+							templet : function(data) {
+								if (data.createTime != null) {
+									return data.createTime.replace("T", " ")
+								} else {
+									return "无";
+								}
+							}
+						} ] ]
+			});
+
+			//头工具栏事件
+			table.on('toolbar(fileTable)', function(obj) {
+				switch (obj.event) {
+				case 'searchFile':
+					var key = $("#searchKey").val();
+					table.reload('fileTable', {
+						where : { //设定异步数据接口的额外参数，任意设
+							keyword : key
+						},
+						page : {
+							curr : 1
+						//重新从第 1 页开始
+						}
+					});
+					$("#searchKey").val(key);
+					break;
+				}
+			});
+
+			//监听单元格事件
+			table.on('tool(fileTable)', function(obj) {
+				var data = obj.data;
+				switch (obj.event) {
+				case 'copyFile':
+					var element = $("<textarea id='copy_content' style='position: absolute; top: 0; left: 0; opacity: 0; z-index: -10;'></textarea>");
+					element.text(
+							"magnet:?xt=urn:btih:" + data.infoHash);
+					$("body").append(element);
+					element[0].select();
+					document.execCommand("Copy");
+					element.remove();
+					layer.msg("复制成功", {
+						time : 800
+					});
+					break;
+				case 'viewFiles':
+					var id = data.id;
+					layer.open({
+						type : 2,
+						title : '文件列表:' + data.name,
+						shadeClose : true,
+						shade : 0.8,
+						maxmin : false, //开启最大化最小化按钮
+						area : [ '500px', '500px' ],
+						content : './files.html?metadataId=' + data.id
+					});
+					break;
+				}
+			});
+
+			//监听排序事件 
+			table.on('sort(fileTable)', function(obj) { //注：tool是工具条事件名，test是table原始容器的属性 lay-filter="对应的值"
+				//有些时候，你可能需要根据当前排序的字段，重新向服务端发送请求，从而实现服务端排序，如：
+				var key = $("#searchKey").val();
+				table.reload('fileTable', {
+					initSort : obj, //记录初始排序，如果不设的话，将无法标记表头的排序状态。
+					where : { //请求参数（注意：这里面的参数可任意定义，并非下面固定的格式）
+						keyword : key,
+						sortField : obj.field, //排序字段
+						sortOrder : obj.type
+					//排序方式
+					}
+				});
+				$("#searchKey").val(key);
+			});
+		});
+	});
+</script>
+</head>
+<body>
+	<table lay-filter="fileTable" id="fileTable"></table>
+	<script type="text/html" id="searchBar">
+		<div class="layui-inline searchKeyInput">
+			<input id="searchKey" type="text" placeholder="搜索关键字" autocomplete="off" class="layui-input">
+		</div>
+    	<button class="layui-btn layui-btn-normal" lay-event="searchFile">搜索</button>
+		<div class="layui-inline" id="pageChange">
+			<a href="./index.html" class="layui-btn" target="_blank">Metadata搜索</a>
+		</div>
+	</script>
+	<script type="text/html" id="viewFiles">
+		<a>点击查看</a>
+	</script>
+</body>
+</html>
